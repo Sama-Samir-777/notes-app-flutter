@@ -1,134 +1,120 @@
+
 import 'package:flutter/material.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 
+// Dialog widget to handle app theme and primary color selection
 class ThemeSettings extends StatefulWidget {
-final ThemeMode themeMode;
-final Color primaryColor;
-final List<Color> colors;
+  final ThemeMode themeMode;
+  final Color primaryColor;
+  final List<Color> colors;
 
-final Function(ThemeMode) changeTheme;
-final Function(Color) changeColor;
+  final Function(ThemeMode) changeTheme;
+  final Function(Color) changeColor;
 
-const ThemeSettings({
-super.key,
-required this.themeMode,
-required this.primaryColor,
-required this.colors,
-required this.changeTheme,
-required this.changeColor,
-});
+  const ThemeSettings({
+    super.key,
+    required this.themeMode,
+    required this.primaryColor,
+    required this.colors,
+    required this.changeTheme,
+    required this.changeColor,
+  });
 
-@override
-State<ThemeSettings> createState() => _ThemeSettingsState();
+  @override
+  State<ThemeSettings> createState() => _ThemeSettingsState();
 }
 
 class _ThemeSettingsState extends State<ThemeSettings> {
-void openTheme(BuildContext context) {
-showDialog(
-context: context,
-builder: (context) {
-return StatefulBuilder(
-builder: (context, setDialogState) {
-return AlertDialog(
-title: const Text("Theme Settings"),
+  // Helper method to build custom theme selection tiles
+  Widget _buildThemeTile(String label, ThemeMode mode, StateSetter updateState) {
+    return RadioListTile<ThemeMode>(
+      title: Text(label),
+      value: mode,
+      groupValue: widget.themeMode,
+      onChanged: (selectedMode) {
+        if (selectedMode != null) {
+          widget.changeTheme(selectedMode);
+          updateState(() {});
+        }
+      },
+    );
+  }
 
-content: SingleChildScrollView(  
-            child: Column(  
-              mainAxisSize: MainAxisSize.min,  
-              children: [  
-                const Text("Choose Mode:"),  
+  void openTheme(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Theme Settings"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Choose Mode:", style: TextStyle(fontWeight: FontWeight.bold)),
+                    
+                    // Reusable theme options
+                    _buildThemeTile("Light", ThemeMode.light, setDialogState),
+                    _buildThemeTile("Dark", ThemeMode.dark, setDialogState),
+                    _buildThemeTile("System", ThemeMode.system, setDialogState),
 
-                RadioListTile<ThemeMode>(  
-                  title: const Text("Light"),  
-                  value: ThemeMode.light,  
-                  groupValue: widget.themeMode,  
-                  onChanged: (value) {  
-                    widget.changeTheme(value!);  
-                    setDialogState(() {});  
-                  },  
-                ),  
+                    const Divider(height: 24),
 
-                RadioListTile<ThemeMode>(  
-                  title: const Text("Dark"),  
-                  value: ThemeMode.dark,  
-                  groupValue: widget.themeMode,  
-                  onChanged: (value) {  
-                    widget.changeTheme(value!);  
-                    setDialogState(() {});  
-                  },  
-                ),  
+                    const Text("Choose Color:", style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
 
-                RadioListTile<ThemeMode>(  
-                  title: const Text("System"),  
-                  value: ThemeMode.system,  
-                  groupValue: widget.themeMode,  
-                  onChanged: (value) {  
-                    widget.changeTheme(value!);  
-                    setDialogState(() {});  
-                  },  
-                ),  
+                    ColorPicker(
+                      color: widget.primaryColor,
+                      onColorChanged: (newColor) {
+                        widget.changeColor(newColor);
+                        setDialogState(() {});
+                      },
+                    ),
 
-                const Divider(),  
+                    if (widget.colors.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      const Text("Recent Colors:"),
+                      const SizedBox(height: 8),
+                      
+                      // Render recently picked colors
+                      Wrap(
+                        spacing: 8,
+                        children: widget.colors.map((c) {
+                          return GestureDetector(
+                            onTap: () {
+                              widget.changeColor(c);
+                              setDialogState(() {});
+                            },
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: c,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Theme.of(context).dividerColor),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
-                const Text("Choose Color:"),  
-
-                const SizedBox(height: 10),  
-
-                ColorPicker(  
-                  color: widget.primaryColor,  
-                  onColorChanged: (color) {  
-                    widget.changeColor(color);  
-                    setDialogState(() {});  
-                  },  
-                ),  
-
-                const SizedBox(height: 10),  
-
-                if (widget.colors.isNotEmpty) ...[  
-                  const Text("Recent Colors:"),  
-
-                  const SizedBox(height: 8),  
-
-                  Wrap(  
-                    spacing: 8,  
-                    children: widget.colors.map((color) {  
-                      return GestureDetector(  
-                        onTap: () {  
-                          widget.changeColor(color);  
-                          setDialogState(() {});  
-                        },  
-
-                        child: Container(  
-                          width: 35,  
-                          height: 35,  
-
-                          decoration: BoxDecoration(  
-                            color: color,  
-                            shape: BoxShape.circle,  
-                          ),  
-                        ),  
-                      );  
-                    }).toList(),  
-                  ),  
-                ],  
-              ],  
-            ),  
-          ),  
-        );  
-      },  
-    );  
-  },  
-);
-
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.palette),
+      onPressed: () => openTheme(context),
+    );
+  }
 }
-
-@override
-Widget build(BuildContext context) {
-return IconButton(
-icon: const Icon(Icons.palette),
-onPressed: () {
-openTheme(context);
-},
-);
-}
-} 
